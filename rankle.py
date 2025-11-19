@@ -21,6 +21,7 @@ import json
 import re
 import socket
 import ssl
+import os
 from datetime import datetime
 from urllib.parse import urlparse
 from typing import Dict, List, Optional, Any, Tuple
@@ -80,6 +81,9 @@ class Rankle:
         self.scan_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.session = self._create_session()
 
+        # Load technology signatures
+        self.tech_signatures = self._load_tech_signatures()
+
         # Validate domain
         if not self._validate_domain(self.domain):
             raise ValueError(f"Invalid domain format: {self.domain}")
@@ -98,6 +102,23 @@ class Rankle:
         """Validate domain format"""
         pattern = r"^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
         return bool(re.match(pattern, domain))
+
+    def _load_tech_signatures(self) -> Dict[str, Any]:
+        """Load technology signatures from JSON file"""
+        try:
+            # Get the directory where rankle.py is located
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            signatures_path = os.path.join(script_dir, "tech_signatures.json")
+
+            if os.path.exists(signatures_path):
+                with open(signatures_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            else:
+                print("   ⚠️  Warning: tech_signatures.json not found, using basic detection")
+                return {"technologies": {}}
+        except Exception as e:
+            print(f"   ⚠️  Warning: Could not load tech_signatures.json: {e}")
+            return {"technologies": {}}
 
     def _create_session(self) -> requests.Session:
         """Create requests session with realistic headers"""
@@ -730,6 +751,221 @@ class Rankle:
         except Exception as e:
             print(f"   └─ Error during fingerprinting: {str(e)}")
             return fingerprint_results
+
+    def detect_technologies_enhanced(self, response: Optional[requests.Response] = None) -> Optional[Dict[str, Any]]:
+        """
+        Enhanced technology detection with confidence scoring and version detection
+        Uses signature-based detection from tech_signatures.json
+        """
+        print("\n🔧 Detecting Web Technologies (Enhanced)...")
+
+        try:
+            if response is None:
+                response = self.session.get(f"https://{self.domain}", timeout=self.HTTP_TIMEOUT)
+
+            html = response.text
+            soup = BeautifulSoup(html, "html.parser")
+            html_lower = html.lower()
+
+            detected_technologies = {}
+
+            # Iterate through all technology signatures
+            for tech_name, tech_data in self.tech_signatures.get("technologies", {}).items():
+                result = self._detect_technology_with_confidence(tech_name, tech_data, response, html, html_lower, soup)
+
+                if result:
+                    detected_technologies[tech_name] = result
+
+            # Categorize technologies
+            categorized = self._categorize_technologies(detected_technologies)
+
+            # Display results with confidence scores
+            self._display_enhanced_results(categorized)
+
+            # Store in results
+            self.results["technologies_enhanced"] = {
+                "detected": detected_technologies,
+                "categorized": categorized,
+                "total_count": len(detected_technologies),
+            }
+
+            return self.results["technologies_enhanced"]
+
+        except Exception as e:
+            print(f"   └─ Error: {str(e)}")
+            return None
+
+    def _detect_technology_with_confidence(
+        self,
+        tech_name: str,
+        tech_data: Dict[str, Any],
+        response: requests.Response,
+        html: str,
+        html_lower: str,
+        soup: BeautifulSoup,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Detect a specific technology with confidence scoring
+        Returns: {"confidence": 0.85, "version": "1.2.3", "indicators": [...]}
+        """
+        confidence_score = 0.0
+        indicators_found = []
+        version = None
+
+        patterns = tech_data.get("patterns", {})
+        weights = tech_data.get("confidence_weights", {})
+
+        # Check HTML patterns
+        if "html" in patterns:
+            for pattern in patterns["html"]:
+                if re.search(pattern, html_lower):
+                    confidence_score += weights.get("pattern", 0.2)
+                    indicators_found.append(f"HTML pattern: {pattern[:50]}")
+
+        # Check HTTP headers
+        if "headers" in patterns:
+            for header_name, header_values in patterns["headers"].items():
+                header_value = response.headers.get(header_name, "")
+                if header_value:
+                    # If header_values is empty list, just presence is enough
+                    if not header_values or any(val.lower() in header_value.lower() for val in header_values):
+                        confidence_score += weights.get("header", 0.4)
+                        indicators_found.append(f"Header: {header_name}")
+
+        # Check cookies
+        if "cookies" in patterns:
+            for cookie_pattern in patterns["cookies"]:
+                for cookie_name in response.cookies.keys():
+                    if cookie_pattern.lower() in cookie_name.lower():
+                        confidence_score += weights.get("cookie", 0.3)
+                        indicators_found.append(f"Cookie: {cookie_name}")
+                        break
+
+        # Check meta tags
+        if "meta" in patterns:
+            meta_generator = soup.find("meta", attrs={"name": "generator"})
+            if meta_generator:
+                content = meta_generator.get("content", "").lower()
+                for meta_pattern in patterns["meta"]:
+                    if meta_pattern.lower() in content:
+                        confidence_score += weights.get("meta", 0.4)
+                        indicators_found.append(f"Meta generator: {content}")
+
+        # Check JavaScript globals
+        if "js_globals" in patterns:
+            for js_global in patterns["js_globals"]:
+                # Look for window.X or just X in inline scripts
+                if re.search(
+                    rf"\bwindow\.{re.escape(js_global)}\b|\b{re.escape(js_global)}\s*[=:]",
+                    html,
+                ):
+                    confidence_score += weights.get("js_global", 0.3)
+                    indicators_found.append(f"JS Global: {js_global}")
+
+        # Detect version if confidence is high enough
+        if confidence_score >= 0.3:
+            version = self._detect_version(tech_name, tech_data, html, response)
+
+        # Return result if confidence threshold met
+        if confidence_score >= 0.3:  # Minimum confidence threshold
+            return {
+                "confidence": min(confidence_score, 1.0),  # Cap at 1.0
+                "version": version,
+                "indicators": indicators_found[:5],  # Limit to 5 indicators
+                "category": tech_data.get("category", "Unknown"),
+            }
+
+        return None
+
+    def _detect_version(
+        self,
+        tech_name: str,
+        tech_data: Dict[str, Any],
+        html: str,
+        response: requests.Response,
+    ) -> Optional[str]:
+        """Detect version of a technology"""
+        version_patterns = tech_data.get("version_patterns", [])
+
+        # Check HTML content
+        for pattern in version_patterns:
+            match = re.search(pattern, html, re.IGNORECASE)
+            if match:
+                return match.group(1)
+
+        # Check headers
+        for header_name, header_value in response.headers.items():
+            for pattern in version_patterns:
+                match = re.search(pattern, header_value, re.IGNORECASE)
+                if match:
+                    return match.group(1)
+
+        return None
+
+    def _categorize_technologies(self, detected: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+        """Categorize detected technologies"""
+        categorized = {}
+
+        for tech_name, tech_info in detected.items():
+            category = tech_info.get("category", "Unknown")
+            if category not in categorized:
+                categorized[category] = []
+
+            categorized[category].append(
+                {
+                    "name": tech_name,
+                    "confidence": tech_info["confidence"],
+                    "version": tech_info.get("version"),
+                }
+            )
+
+        # Sort by confidence within each category
+        for category in categorized:
+            categorized[category].sort(key=lambda x: x["confidence"], reverse=True)
+
+        return categorized
+
+    def _display_enhanced_results(self, categorized: Dict[str, List[Dict[str, Any]]]):
+        """Display enhanced detection results"""
+        if not categorized:
+            print("   └─ No technologies detected with sufficient confidence")
+            return
+
+        # Sort categories by priority
+        category_order = [
+            "CMS",
+            "E-commerce",
+            "Portal",
+            "JavaScript Framework",
+            "JavaScript Library",
+            "CSS Framework",
+            "Web Server",
+            "Programming Language",
+            "Analytics",
+            "CDN",
+            "Unknown",
+        ]
+
+        for category in category_order:
+            if category not in categorized:
+                continue
+
+            techs = categorized[category]
+            print(f"\n   📦 {category}:")
+
+            for tech in techs[:5]:  # Show top 5 per category
+                confidence_pct = int(tech["confidence"] * 100)
+                version_str = f" v{tech['version']}" if tech["version"] else ""
+
+                # Confidence indicator
+                if confidence_pct >= 80:
+                    indicator = "🟢"
+                elif confidence_pct >= 50:
+                    indicator = "🟡"
+                else:
+                    indicator = "🟠"
+
+                print(f"      {indicator} {tech['name']}{version_str} (confidence: {confidence_pct}%)")
 
     def detect_technologies(self, response: Optional[requests.Response] = None) -> Optional[Dict[str, Any]]:
         """
@@ -1622,6 +1858,10 @@ class Rankle:
 
         self.analyze_tls_certificate()
 
+        # Use enhanced technology detection
+        self.detect_technologies_enhanced(response)
+
+        # Keep legacy detection for backward compatibility
         self.detect_technologies(response)
 
         # Advanced fingerprinting
@@ -1678,6 +1918,32 @@ class Rankle:
         print("🔧 TECHNOLOGY STACK")
         print("═" * 80)
 
+        # Enhanced Technology Detection Results
+        if "technologies_enhanced" in self.results:
+            enhanced = self.results["technologies_enhanced"]
+            categorized = enhanced.get("categorized", {})
+
+            if categorized:
+                print("\n  🔬 Enhanced Detection Results:")
+                for category, techs in categorized.items():
+                    print(f"\n    {category}:")
+                    for tech in techs[:5]:
+                        confidence_pct = int(tech["confidence"] * 100)
+                        version_str = f" v{tech['version']}" if tech["version"] else ""
+
+                        # Confidence indicator
+                        if confidence_pct >= 80:
+                            indicator = "🟢"
+                        elif confidence_pct >= 50:
+                            indicator = "🟡"
+                        else:
+                            indicator = "🟠"
+
+                        print(f"      {indicator} {tech['name']}{version_str} ({confidence_pct}%)")
+
+            print("")  # Add spacing
+
+        # Legacy detection results (backward compatibility)
         if "technologies_web" in self.results:
             tech = self.results["technologies_web"]
             print(f"  CMS:               {tech.get('cms', 'Unknown')}")

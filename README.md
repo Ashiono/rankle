@@ -13,6 +13,7 @@ A comprehensive web infrastructure analyzer using 100% Open Source Python librar
 
 ## 🎯 Features
 
+- **🔬 Enhanced Technology Detection** - Confidence scoring (0-100%), version detection, 30+ technologies with signature-based identification
 - **Enhanced CMS Detection** - 16+ systems including Drupal (15+ patterns), WordPress, Joomla, Magento, TYPO3, Concrete5
 - **Advanced Fingerprinting** - 8 techniques: HTTP methods, server versions, API discovery, exposed files, cookies, error pages, headers, response timing
 - **Cloud Provider Detection** - 14+ providers: AWS, Azure, GCP, DigitalOcean, OVH, Hetzner, Linode, Vultr, Alibaba, Oracle, IBM, Scaleway
@@ -28,6 +29,17 @@ A comprehensive web infrastructure analyzer using 100% Open Source Python librar
 - **WHOIS Lookup** - Enhanced with fallback methods
 - **Geolocation** - Hosting provider and geographic information with reverse DNS
 - **Export Options** - JSON (machine-readable) and text (human-readable) formats
+
+### ✨ New in v2.0: Enhanced Technology Detection
+
+Rankle now includes an advanced technology detection system with:
+- **Confidence Scoring**: Each technology gets a 0-100% confidence score based on multiple indicators
+- **Version Detection**: Automatically detects specific versions (e.g., WordPress 6.4.2, jQuery 3.6.0)
+- **Multi-Category Support**: CMS, E-commerce, Frameworks, Libraries, Analytics, CDN, Web Servers, etc.
+- **Signature-Based Detection**: Uses `tech_signatures.json` database for extensible detection
+- **Visual Indicators**: 🟢 High (80%+), 🟡 Medium (50-79%), 🟠 Low (30-49%) confidence
+
+See [ENHANCED_DETECTION.md](ENHANCED_DETECTION.md) for detailed documentation.
 
 ## 📋 Table of Contents
 
@@ -748,6 +760,14 @@ Advanced fingerprinting using multiple techniques
 
 ---
 
+#### `detect_technologies_enhanced(response: Optional[requests.Response] = None) -> Optional[Dict[str, Any]]`
+
+Enhanced technology detection with confidence scoring and version detection
+
+Uses signature-based detection from tech_signatures.json
+
+---
+
 #### `detect_technologies(response: Optional[requests.Response] = None) -> Optional[Dict[str, Any]]`
 
 Detect web technologies including CMS, frameworks, and libraries
@@ -765,14 +785,6 @@ Detect CDN and Web Application Firewall
 #### `detect_cloud_provider(ip, isp_name = None, hostname = None)`
 
 Detect cloud/hosting provider based on IP, ISP, and hostname
-
----
-
-#### `analyze_geolocation(ip)`
-
-Analyze geolocation using free public API
-
-Uses ipapi.co which doesn't require API key for basic usage
 
 ---
 
