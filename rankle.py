@@ -1000,7 +1000,7 @@ class Rankle:
             'Sucuri WAF': ['sucuri', 'cloudproxy'],
             'Incapsula/Imperva': ['incapsula', 'visid_incap', 'imperva'],
             'ModSecurity': ['mod_security', 'modsecurity'],
-            'AWS WAF': ['x-amzn-waf', 'x-amzn-requestid', 'awselb'],
+            'AWS WAF': ['x-amzn-waf', 'x-amzn-requestid', 'awselb', 'x-amzn-trace-id', 'x-amz-apigw'],
             'Barracuda': ['barracuda', 'barra'],
             'F5 BIG-IP ASM': ['bigip', 'f5', 'f5-trace'],
             'Fortinet FortiWeb': ['fortiweb', 'fortigate'],
@@ -1017,6 +1017,7 @@ class Rankle:
         
         detected_cdns = []
         detected_wafs = []
+        detection_methods = []
         
         # Search in headers
         headers_str = ' '.join([f"{k}:{v}" for k, v in headers.items()]).lower()
@@ -1030,6 +1031,7 @@ class Rankle:
             if any(re.search(indicator, headers_str) for indicator in indicators):
                 if waf_name not in detected_wafs:
                     detected_wafs.append(waf_name)
+                    detection_methods.append(f"{waf_name} (header signature)")
         
         # Search in CNAMEs if provided
         if cnames:
@@ -1047,16 +1049,145 @@ class Rankle:
             if cdn_from_ip and cdn_from_ip not in detected_cdns:
                 detected_cdns.append(cdn_from_ip)
         
+        # Active WAF detection with test payloads
+        active_waf = self._active_waf_detection()
+        if active_waf and active_waf not in detected_wafs:
+            detected_wafs.append(active_waf['name'])
+            detection_methods.append(f"{active_waf['name']} (active detection: {active_waf['method']})")
+        
         cdn_result = ', '.join(detected_cdns) if detected_cdns else "Not detected"
         waf_result = ', '.join(detected_wafs) if detected_wafs else "Not detected"
         
         print(f"   └─ CDN: {cdn_result}")
         print(f"   └─ WAF: {waf_result}")
+        if detection_methods:
+            for method in detection_methods:
+                print(f"      • {method}")
         
         self.results['cdn'] = cdn_result
         self.results['waf'] = waf_result
+        self.results['waf_detection_methods'] = detection_methods
         
         return cdn_result, waf_result
+    
+    def _active_waf_detection(self):
+        """
+        Active WAF detection using test payloads
+        ETHICAL: Only uses non-intrusive detection payloads
+        """
+        print("   └─ Running active WAF detection tests...")
+        
+        # Test payloads that trigger WAF responses
+        test_payloads = [
+            {
+                'name': 'XSS Detection',
+                'param': '?test=<script>alert(1)</script>',
+                'expected_blocks': ['AWS WAF', 'Cloudflare WAF', 'ModSecurity']
+            },
+            {
+                'name': 'SQL Injection Detection',
+                'param': '?id=1\' OR \'1\'=\'1',
+                'expected_blocks': ['AWS WAF', 'Cloudflare WAF', 'ModSecurity']
+            },
+            {
+                'name': 'Path Traversal Detection',
+                'param': '?file=../../../etc/passwd',
+                'expected_blocks': ['AWS WAF', 'Cloudflare WAF']
+            },
+            {
+                'name': 'Command Injection Detection',
+                'param': '?cmd=|cat /etc/passwd',
+                'expected_blocks': ['AWS WAF', 'ModSecurity']
+            }
+        ]
+        
+        # Get baseline response
+        try:
+            baseline = self.session.get(
+                f"https://{self.domain}",
+                timeout=10,
+                allow_redirects=False
+            )
+            baseline_status = baseline.status_code
+            baseline_headers = {k.lower(): v for k, v in baseline.headers.items()}
+        except Exception as e:
+            print(f"      • Baseline request failed: {str(e)}")
+            return None
+        
+        # Test each payload
+        for payload_test in test_payloads[:2]:  # Limit to first 2 tests
+            try:
+                test_url = f"https://{self.domain}/{payload_test['param']}"
+                response = self.session.get(
+                    test_url,
+                    timeout=10,
+                    allow_redirects=False
+                )
+                
+                # Check for WAF indicators
+                status = response.status_code
+                resp_headers = {k.lower(): v for k, v in response.headers.items()}
+                resp_text = response.text.lower() if len(response.text) < 10000 else ''
+                
+                # AWS WAF specific indicators
+                aws_waf_indicators = [
+                    status == 403,  # Common block status
+                    status == 405,
+                    'x-amzn-requestid' in resp_headers,
+                    'x-amzn-errortype' in resp_headers,
+                    'x-amz-apigw-id' in resp_headers,
+                    'awselb' in str(resp_headers),
+                    'x-amzn-trace-id' in resp_headers,
+                    'request blocked' in resp_text,
+                    'aws waf' in resp_text,
+                    'access denied' in resp_text and 'cloudfront' in str(resp_headers)
+                ]
+                
+                if sum(aws_waf_indicators) >= 2:
+                    print(f"      ✓ AWS WAF detected via {payload_test['name']}")
+                    return {
+                        'name': 'AWS WAF',
+                        'method': payload_test['name'],
+                        'status': status,
+                        'confidence': 'high' if sum(aws_waf_indicators) >= 3 else 'medium'
+                    }
+                
+                # Cloudflare WAF indicators
+                if status == 403 and any(k.startswith('cf-') for k in resp_headers.keys()):
+                    print(f"      ✓ Cloudflare WAF detected via {payload_test['name']}")
+                    return {
+                        'name': 'Cloudflare WAF',
+                        'method': payload_test['name'],
+                        'status': status,
+                        'confidence': 'high'
+                    }
+                
+                # Generic WAF detection
+                if status in [403, 406, 419, 429, 501] and status != baseline_status:
+                    # Check response body for WAF signatures
+                    waf_signatures = {
+                        'AWS WAF': ['aws', 'cloudfront', 'access denied', 'forbidden'],
+                        'ModSecurity': ['mod_security', 'modsecurity', 'not acceptable'],
+                        'Generic WAF': ['web application firewall', 'security policy', 'request blocked']
+                    }
+                    
+                    for waf_name, signatures in waf_signatures.items():
+                        if any(sig in resp_text for sig in signatures):
+                            print(f"      ✓ {waf_name} detected via {payload_test['name']}")
+                            return {
+                                'name': waf_name,
+                                'method': payload_test['name'],
+                                'status': status,
+                                'confidence': 'medium'
+                            }
+                
+            except requests.exceptions.RequestException:
+                pass
+            except Exception as e:
+                print(f"      • Test failed: {str(e)}")
+        
+        print("      • No WAF detected via active testing")
+        return None
     
     def _detect_cdn_by_ip(self, ip):
         """Try to detect CDN by IP address using reverse DNS"""
