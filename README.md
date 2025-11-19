@@ -3,7 +3,7 @@
 # 🃏 Rankle - Web Infrastructure Reconnaissance Tool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B%20%7C%203.14-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 [![GitHub Actions](https://github.com/javicosvml/rankle/workflows/Docker%20Build%20Test/badge.svg)](https://github.com/javicosvml/rankle/actions)
 
@@ -11,15 +11,16 @@ Named after **Rankle, Master of Pranks** from Magic: The Gathering - a legendary
 
 A comprehensive web infrastructure analyzer using 100% Open Source Python libraries with **no API keys required**.
 
-> **🎉 NEW v2.0**: Rankle has been completely refactored with a **modular architecture** for better maintainability and collaboration! See [MIGRATION.md](MIGRATION.md) for details.
+> **🎉 NEW v2.0 (Nov 2025)**: Complete refactor with **modular architecture** following Python 3.14 best practices! See [MIGRATION.md](MIGRATION.md) for details.
 
-## 🏗️ Project Structure (v2.0)
+## 🏗️ Project Structure (v2.0 - 2025 Standards)
 
-Rankle now follows modern Python best practices with a clean, modular architecture:
+Rankle follows **Python 3.14 (2025) best practices** with modern packaging:
 
 ```
 rankle/
-├── main.py                 # New entry point
+├── pyproject.toml          # Modern Python packaging (PEP 621)
+├── main.py                 # Entry point
 ├── rankle/                 # Main package
 │   ├── core/              # Scanner & session management
 │   ├── modules/           # Reconnaissance modules (DNS, SSL, etc.)
@@ -27,9 +28,16 @@ rankle/
 │   ├── utils/             # Utilities & validators
 │   └── reports/           # Report generation
 ├── config/                 # Configuration & settings
-├── tests/                  # Unit tests
-└── rankle.py              # Legacy (still works, being deprecated)
+├── tests/                  # Unit tests (pytest)
+└── rankle.py              # Legacy (deprecated in v3.0)
 ```
+
+**Standards Compliance**:
+- ✅ **Python 3.14** compatible (latest stable as of Oct 2025)
+- ✅ **PEP 621** - Modern packaging with `pyproject.toml`
+- ✅ **PEP 517/518** - Build system specification
+- ✅ **Type hints** - Full typing support
+- ✅ **Black formatted** - Code style consistency
 
 **Benefits**: Better collaboration, easier testing, cleaner code, extensible architecture.
 **Migration Guide**: [MIGRATION.md](MIGRATION.md)

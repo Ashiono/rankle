@@ -1,8 +1,26 @@
-# Migration to Modular Architecture
+# Migration to Modular Architecture (v2.0)
 
 ## Overview
 
-Rankle has been refactored from a single monolithic `rankle.py` file to a clean, modular architecture following Python best practices for 2024.
+Rankle has been refactored from a single monolithic `rankle.py` file to a **clean, modular architecture** following **Python 3.14 (2025) best practices**.
+
+## 🐍 Python 3.14 Compliance
+
+**Latest Stable**: Python 3.14.0 (Released October 7, 2025)
+
+Rankle v2.0 is fully compatible with:
+- ✅ Python 3.11 (minimum)
+- ✅ Python 3.12
+- ✅ Python 3.13
+- ✅ Python 3.14 (latest stable)
+
+### Key 2025 Standards Applied
+
+1. **PEP 621** - Modern project metadata in `pyproject.toml`
+2. **PEP 517/518** - Build system specification
+3. **Type Hints** - Full typing support for better IDE integration
+4. **Black Formatting** - Consistent code style (88 chars)
+5. **Modular Architecture** - Clean separation of concerns
 
 ## New Structure
 
