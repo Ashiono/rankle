@@ -11,6 +11,29 @@ Named after **Rankle, Master of Pranks** from Magic: The Gathering - a legendary
 
 A comprehensive web infrastructure analyzer using 100% Open Source Python libraries with **no API keys required**.
 
+> **🎉 NEW v2.0**: Rankle has been completely refactored with a **modular architecture** for better maintainability and collaboration! See [MIGRATION.md](MIGRATION.md) for details.
+
+## 🏗️ Project Structure (v2.0)
+
+Rankle now follows modern Python best practices with a clean, modular architecture:
+
+```
+rankle/
+├── main.py                 # New entry point
+├── rankle/                 # Main package
+│   ├── core/              # Scanner & session management
+│   ├── modules/           # Reconnaissance modules (DNS, SSL, etc.)
+│   ├── detectors/         # Technology detectors (CMS, WAF, etc.)
+│   ├── utils/             # Utilities & validators
+│   └── reports/           # Report generation
+├── config/                 # Configuration & settings
+├── tests/                  # Unit tests
+└── rankle.py              # Legacy (still works, being deprecated)
+```
+
+**Benefits**: Better collaboration, easier testing, cleaner code, extensible architecture.
+**Migration Guide**: [MIGRATION.md](MIGRATION.md)
+
 ## 🎯 Features
 
 - **🔬 Enhanced Technology Detection** - Confidence scoring (0-100%), version detection, 30+ technologies with signature-based identification
@@ -57,7 +80,29 @@ See [ENHANCED_DETECTION.md](ENHANCED_DETECTION.md) for detailed documentation.
 
 ## 🚀 Quick Start
 
-### Option 1: Docker (Recommended)
+### Option 1: Python (New Modular Structure - v2.0)
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run scan with new entry point
+python main.py example.com
+
+# With options
+python main.py example.com --output json
+python main.py example.com --no-save
+python main.py example.com --verbose
+```
+
+### Option 2: Python (Legacy)
+
+```bash
+# Still works, but being deprecated
+python rankle.py example.com
+```
+
+### Option 3: Docker (Recommended)
 
 ```bash
 # Build locally
@@ -65,21 +110,11 @@ docker build -t rankle .
 docker run --rm rankle example.com
 ```
 
-### Option 2: Python
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run scan
-python rankle.py example.com
-```
-
 ### Quick Test
 
 ```bash
-# Basic scan
-python rankle.py example.com
+# Basic scan (new way)
+python main.py example.com
 
 # Expected output:
 # CMS:               Drupal
